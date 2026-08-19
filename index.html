@@ -175,7 +175,6 @@
         <div class="control-label">Target format:</div>
         <select class="select-box" id="target-docs">
           <option value="pdf" selected>PDF Document (.pdf)</option>
-          <option value="docx">Microsoft Word (.docx)</option>
           <option value="txt">Text File (.txt)</option>
         </select>
       </div>
@@ -210,7 +209,7 @@
     <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
       <div class="upload-icon">⚡</div>
       <div class="upload-title">Click to upload file</div>
-      <div class="upload-hint" id="accept-text">Supported: Documents, Images, Audio, Video</div>
+      <div class="upload-hint" id="accept-text">Supported for PDF: JPG, PNG, WEBP, TXT</div>
       <input type="file" id="file-input" onchange="onFileSelected(this.files[0])">
     </div>
 
@@ -270,8 +269,9 @@
 
       statusArea.innerHTML = `<span style="color: var(--text-muted)">⏳ Processing file...</span>`;
 
-      // 1. Image or Text to PDF
+      // 1. PDF Conversion Logic
       if (targetFormat === 'pdf') {
+        // Image to PDF
         if (currentFile.type.startsWith('image/')) {
           const reader = new FileReader();
           reader.onload = function(e) {
@@ -282,31 +282,44 @@
               const imgWidth = doc.internal.pageSize.getWidth();
               const imgHeight = (img.height * imgWidth) / img.width;
               doc.addImage(e.target.result, 'JPEG', 0, 0, imgWidth, imgHeight);
-              const pdfBlob = doc.output('bloburl');
+              
+              const pdfArrayBuffer = doc.output('arraybuffer');
+              const blob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+              const pdfUrl = URL.createObjectURL(blob);
 
-              statusArea.innerHTML = `<div class="status-success">✓ Complete!<br><br><a href="${pdfBlob}" download="${currentFile.name.split('.')[0]}.pdf" target="_blank">Download PDF File</a></div>`;
+              statusArea.innerHTML = `<div class="status-success">✓ PDF Generated Successfully!<br><br><a href="${pdfUrl}" download="${currentFile.name.split('.')[0]}.pdf">Click Here to Download PDF</a></div>`;
             };
             img.src = e.target.result;
           };
           reader.readAsDataURL(currentFile);
           return;
-        } else {
+        } 
+        // Plain Text to PDF
+        else if (currentFile.type === 'text/plain' || currentFile.name.endsWith('.txt')) {
           const reader = new FileReader();
           reader.onload = function(e) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             const splitText = doc.splitTextToSize(e.target.result, 180);
             doc.text(splitText, 10, 10);
-            const pdfBlob = doc.output('bloburl');
+            
+            const pdfArrayBuffer = doc.output('arraybuffer');
+            const blob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+            const pdfUrl = URL.createObjectURL(blob);
 
-            statusArea.innerHTML = `<div class="status-success">✓ Complete!<br><br><a href="${pdfBlob}" download="${currentFile.name.split('.')[0]}.pdf" target="_blank">Download PDF File</a></div>`;
+            statusArea.innerHTML = `<div class="status-success">✓ PDF Generated Successfully!<br><br><a href="${pdfUrl}" download="${currentFile.name.split('.')[0]}.pdf">Click Here to Download PDF</a></div>`;
           };
           reader.readAsText(currentFile);
+          return;
+        } 
+        // Complex Word/Binary files notice
+        else {
+          statusArea.innerHTML = `<div class="status-info">⚠️ Direct conversion for <b>${currentFile.name.split('.').pop().toUpperCase()}</b> is binary structured. Please upload an image (PNG/JPG) or text file (.txt) for instant client-side PDF creation.</div>`;
           return;
         }
       }
 
-      // 2. Image to Image (JPG, PNG, WEBP)
+      // 2. Image-to-Image Conversion (JPG, PNG, WEBP)
       if (currentFile.type.startsWith('image/') && ['jpg', 'png', 'webp'].includes(targetFormat)) {
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -329,9 +342,9 @@
         return;
       }
 
-      // 3. Fallback for other non-client formats
+      // 3. Fallback Info
       setTimeout(() => {
-        statusArea.innerHTML = `<div class="status-info">Selected format (<b>${targetFormat.toUpperCase()}</b>) requires server-side processing or WASM modules.</div>`;
+        statusArea.innerHTML = `<div class="status-info">Selected format (<b>${targetFormat.toUpperCase()}</b>) requires advanced WASM audio/video modules.</div>`;
       }, 500);
     }
   </script>
