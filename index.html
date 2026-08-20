@@ -5,17 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Universal File Converter Pro</title>
   
-  <!-- PDF and Word Extraction Libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Mammoth للتعامل مع ملفات الوورد -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   
-  <!-- Audio & Video Processing Engine (FFmpeg.wasm) -->
+  <!-- html2pdf لحل مشكلة الترميز واللغة العربية/الإنجليزية في PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- محرك FFmpeg للصوت والفيديو -->
   <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
   <style>
     :root {
       --primary: #4f46e5;
-      --primary-hover: #4338ca;
       --bg-main: #0f172a;
       --card-bg: #1e293b;
       --card-inner: #0f172a;
@@ -170,6 +171,9 @@
     <div class="status-area" id="status-area"></div>
   </div>
 
+  <!-- حاوية مخفية لمعالجة نصوص المستندات وترجمتها إلى PDF بشكل صحيح -->
+  <div id="pdf-render-temp" style="display: none; padding: 20px; color: #000; background: #fff; font-family: Arial, sans-serif; line-height: 1.6;"></div>
+
   <script>
     let currentCategory = 'docs';
     let selectedFile = null;
@@ -244,22 +248,29 @@
       statusArea.innerHTML = '⏳ Processing... Please wait';
 
       try {
+        // 1. معالجة المستندات بـ html2pdf (حل مشكلة الترميز)
         if (currentCategory === 'docs') {
           if (selectedFile.name.toLowerCase().endsWith('.docx') && targetFormat === 'pdf') {
             const buffer = await selectedFile.arrayBuffer();
-            const result = await mammoth.extractRawText({ arrayBuffer: buffer });
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
             
-            const lines = doc.splitTextToSize(result.value, 180);
-            let y = 15;
-            lines.forEach(line => {
-              if (y > 280) { doc.addPage(); y = 15; }
-              doc.text(line, 10, y, { align: 'left', isRTL: false });
-              y += 7;
-            });
+            const renderContainer = document.getElementById('pdf-render-temp');
+            renderContainer.innerHTML = result.value;
+            renderContainer.style.display = 'block';
 
-            createDownload(doc.output('blob'), `${baseName}.pdf`, 'application/pdf');
+            const opt = {
+              margin:       10,
+              filename:     `${baseName}.pdf`,
+              image:        { type: 'jpeg', quality: 0.98 },
+              html2canvas:  { scale: 2 },
+              jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            const pdfBlob = await html2pdf().set(opt).from(renderContainer).output('blob');
+            renderContainer.style.display = 'none';
+            renderContainer.innerHTML = '';
+
+            createDownload(pdfBlob, `${baseName}.pdf`, 'application/pdf');
             return;
           }
 
@@ -277,20 +288,25 @@
           }
         }
 
+        // 2. معالجة الصور
         if (currentCategory === 'images' || selectedFile.type.startsWith('image/')) {
           if (targetFormat === 'pdf') {
             const reader = new FileReader();
             reader.onload = function(e) {
-              const img = new Image();
-              img.onload = function() {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                const width = doc.internal.pageSize.getWidth();
-                const height = (img.height * width) / img.width;
-                doc.addImage(e.target.result, 'JPEG', 0, 0, width, height);
-                createDownload(doc.output('blob'), `${baseName}.pdf`, 'application/pdf');
+              const imgContainer = document.createElement('div');
+              imgContainer.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: auto;" />`;
+              
+              const opt = {
+                margin:       5,
+                filename:     `${baseName}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
               };
-              img.src = e.target.result;
+
+              html2pdf().set(opt).from(imgContainer).output('blob').then(pdfBlob => {
+                createDownload(pdfBlob, `${baseName}.pdf`, 'application/pdf');
+              });
             };
             reader.readAsDataURL(selectedFile);
             return;
@@ -318,6 +334,7 @@
           }
         }
 
+        // 3. الصوت والفيديو
         if (currentCategory === 'videos' || currentCategory === 'audio') {
           statusArea.innerHTML = '⏳ Initializing media engine...';
           
