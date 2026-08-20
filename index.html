@@ -5,17 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>المحول الشامل للملفات Pro</title>
   
-  <!-- مكتبات PDF واستخراج نصوص الوورد -->
+  <!-- مكتبات PDF والوورد -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-  
-  <!-- محرك تحويل الصوت والفيديو (FFmpeg.wasm) -->
   <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
   <style>
     :root {
       --primary: #4f46e5;
-      --primary-hover: #4338ca;
       --bg-main: #0f172a;
       --card-bg: #1e293b;
       --card-inner: #0f172a;
@@ -139,7 +136,7 @@
   <div class="app-card">
     <div class="header">
       <h1>المحول الشامل للملفات</h1>
-      <p>معالجة سريعة وآمنة للمستندات والوسائط داخل المتصفح</p>
+      <p>معالجة مباشرة ودعم كامل للغة العربية</p>
     </div>
 
     <div class="category-nav">
@@ -244,19 +241,18 @@
       statusArea.innerHTML = '⏳ جاري المعالجة... يرجى الانتظار';
 
       try {
-        // 1. معالجة المستندات (DOCX / TXT)
         if (currentCategory === 'docs') {
           if (selectedFile.name.toLowerCase().endsWith('.docx') && targetFormat === 'pdf') {
             const buffer = await selectedFile.arrayBuffer();
             const result = await mammoth.extractRawText({ arrayBuffer: buffer });
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const lines = doc.splitTextToSize(result.value, 180);
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
             
-            let y = 10;
+            const lines = doc.splitTextToSize(result.value, 180);
+            let y = 15;
             lines.forEach(line => {
-              if (y > 280) { doc.addPage(); y = 10; }
-              doc.text(line, 10, y);
+              if (y > 280) { doc.addPage(); y = 15; }
+              doc.text(line, 200, y, { align: 'right', isRTL: true });
               y += 7;
             });
 
@@ -273,12 +269,11 @@
             } else {
               textContent = await selectedFile.text();
             }
-            createDownload(new Blob([textContent], { type: 'text/plain' }), `${baseName}.txt`, 'text/plain');
+            createDownload(new Blob([textContent], { type: 'text/plain;charset=utf-8' }), `${baseName}.txt`, 'text/plain');
             return;
           }
         }
 
-        // 2. معالجة الصور
         if (currentCategory === 'images' || selectedFile.type.startsWith('image/')) {
           if (targetFormat === 'pdf') {
             const reader = new FileReader();
@@ -320,7 +315,6 @@
           }
         }
 
-        // 3. معالجة الوسائط عبر FFmpeg (الصوت والفيديو)
         if (currentCategory === 'videos' || currentCategory === 'audio') {
           statusArea.innerHTML = '⏳ جاري تهيئة المحرك...';
           
