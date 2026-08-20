@@ -1,25 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Universal File Converter Pro</title>
+  <title>المحول الشامل للملفات Pro</title>
   
-  <!-- jsPDF & PDF-Lib Libraries -->
+  <!-- مكتبات PDF واستخراج نصوص الوورد -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-  
-  <!-- Mammoth JS for Word .docx extraction -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   
-  <!-- FFmpeg.wasm for Audio and Video Conversion -->
+  <!-- محرك تحويل الصوت والفيديو (FFmpeg.wasm) -->
   <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
   <style>
     :root {
       --primary: #4f46e5;
       --primary-hover: #4338ca;
-      --primary-light: rgba(79, 70, 229, 0.12);
       --bg-main: #0f172a;
       --card-bg: #1e293b;
       --card-inner: #0f172a;
@@ -27,307 +23,263 @@
       --text-muted: #94a3b8;
       --border-color: #334155;
       --success: #10b981;
-      --warning: #f59e0b;
-      --shadow-glow: rgba(79, 70, 229, 0.25);
+      --danger: #ef4444;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     
     body {
       background-color: var(--bg-main);
-      background-image: 
-        radial-gradient(at 20% 20%, rgba(79, 70, 229, 0.15) 0px, transparent 50%),
-        radial-gradient(at 80% 80%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px 16px;
+      padding: 20px;
     }
 
     .app-card {
       background-color: var(--card-bg);
-      border-radius: 20px;
-      padding: 36px 32px;
+      border-radius: 16px;
+      padding: 30px;
       width: 100%;
-      max-width: 680px;
+      max-width: 650px;
       border: 1px solid var(--border-color);
-      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 30px var(--shadow-glow);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     }
 
-    .header { text-align: center; margin-bottom: 28px; }
-    .header h1 { font-size: 1.75rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px; }
-    .header p { color: var(--text-muted); font-size: 0.92rem; }
+    .header { text-align: center; margin-bottom: 25px; }
+    .header h1 { font-size: 1.6rem; margin-bottom: 8px; }
+    .header p { color: var(--text-muted); font-size: 0.9rem; }
 
     .category-nav {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      gap: 6px;
       background: var(--card-inner);
       padding: 6px;
-      border-radius: 12px;
+      border-radius: 10px;
       border: 1px solid var(--border-color);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .cat-btn {
       background: transparent;
       border: none;
       color: var(--text-muted);
-      padding: 10px 6px;
-      border-radius: 8px;
+      padding: 10px;
+      border-radius: 6px;
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.9rem;
-      transition: all 0.25s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
+      font-size: 0.85rem;
     }
 
-    .cat-btn:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.04); }
-    .cat-btn.active { background-color: var(--primary); color: #ffffff; box-shadow: 0 4px 12px var(--shadow-glow); }
+    .cat-btn.active { background-color: var(--primary); color: #fff; }
 
-    .controls-wrapper { margin-bottom: 24px; }
-    .format-panel { display: none; flex-direction: column; gap: 10px; }
-    .format-panel.active { display: flex; }
-
-    .control-label { font-size: 0.88rem; color: var(--text-muted); font-weight: 500; }
+    .control-group { margin-bottom: 20px; }
+    .control-label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
 
     .select-box {
       background-color: var(--card-inner);
       color: var(--text-main);
       border: 1px solid var(--border-color);
-      padding: 12px 14px;
-      border-radius: 10px;
+      padding: 12px;
+      border-radius: 8px;
       outline: none;
-      font-size: 0.95rem;
-      cursor: pointer;
       width: 100%;
     }
 
     .upload-zone {
       border: 2px dashed var(--border-color);
-      border-radius: 14px;
-      padding: 32px 20px;
+      border-radius: 12px;
+      padding: 30px 15px;
       text-align: center;
       cursor: pointer;
-      background: rgba(15, 23, 42, 0.4);
-      transition: all 0.25s ease;
+      background: rgba(15, 23, 42, 0.5);
     }
 
-    .upload-zone:hover { border-color: var(--primary); background: var(--primary-light); }
-    .upload-icon { width: 48px; height: 48px; margin: 0 auto 12px; background: var(--card-inner); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); color: var(--primary); font-size: 1.4rem; }
-    .upload-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
-    .upload-hint { color: var(--text-muted); font-size: 0.8rem; }
+    .upload-zone:hover { border-color: var(--primary); }
     #file-input { display: none; }
 
-    .file-card {
+    .file-info {
       display: none;
-      align-items: center;
-      justify-content: space-between;
+      margin-top: 15px;
+      padding: 12px;
       background: var(--card-inner);
+      border-radius: 8px;
       border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 12px 16px;
-      margin-top: 16px;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
+      justify-content: space-between;
     }
 
-    .file-card.active { display: flex; }
-    .file-name { color: var(--text-main); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%; }
-    .file-size { color: var(--text-muted); font-size: 0.8rem; }
+    .file-info.active { display: flex; }
 
     .btn-convert {
       width: 100%;
       margin-top: 20px;
       padding: 14px;
       background-color: var(--primary);
-      color: #ffffff;
+      color: #fff;
       border: none;
-      border-radius: 10px;
-      font-size: 1rem;
+      border-radius: 8px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 14px var(--shadow-glow);
     }
 
-    .btn-convert:hover:not(:disabled) { background-color: var(--primary-hover); }
-    .btn-convert:disabled { background-color: var(--border-color); cursor: not-allowed; opacity: 0.6; }
+    .btn-convert:disabled { background-color: var(--border-color); cursor: not-allowed; }
 
-    .status-area { margin-top: 18px; text-align: center; font-size: 0.9rem; }
-    .status-success { color: var(--success); font-weight: 600; }
-    .status-success a { color: #818cf8; text-decoration: underline; word-break: break-all; }
-    .status-info { color: var(--warning); line-height: 1.5; }
+    .status-area { margin-top: 15px; text-align: center; font-size: 0.9rem; line-height: 1.6; }
+    .status-success { color: var(--success); }
+    .status-error { color: var(--danger); }
+    .status-success a { color: #818cf8; font-weight: bold; }
   </style>
 </head>
 <body>
 
   <div class="app-card">
     <div class="header">
-      <h1>Universal File Converter</h1>
-      <p>Convert Documents, Images, Audio, and Video directly in your browser</p>
+      <h1>المحول الشامل للملفات</h1>
+      <p>معالجة سريعة وآمنة للمستندات والوسائط داخل المتصفح</p>
     </div>
 
     <div class="category-nav">
-      <button class="cat-btn active" onclick="switchCategory('docs')">📄 Documents</button>
-      <button class="cat-btn" onclick="switchCategory('images')">🖼️ Images</button>
-      <button class="cat-btn" onclick="switchCategory('videos')">🎬 Videos</button>
-      <button class="cat-btn" onclick="switchCategory('audio')">🎵 Audio</button>
+      <button class="cat-btn active" onclick="switchCategory('docs', this)">📄 المستندات</button>
+      <button class="cat-btn" onclick="switchCategory('images', this)">🖼️ الصور</button>
+      <button class="cat-btn" onclick="switchCategory('videos', this)">🎬 الفيديو</button>
+      <button class="cat-btn" onclick="switchCategory('audio', this)">🎵 الصوت</button>
     </div>
 
-    <div class="controls-wrapper">
-      <div id="panel-docs" class="format-panel active">
-        <div class="control-label">Target format:</div>
-        <select class="select-box" id="target-docs">
-          <option value="pdf" selected>PDF Document (.pdf)</option>
-          <option value="txt">Text File (.txt)</option>
-        </select>
-      </div>
-
-      <div id="panel-images" class="format-panel">
-        <div class="control-label">Target format:</div>
-        <select class="select-box" id="target-images">
-          <option value="pdf" selected>PDF Document (.pdf)</option>
-          <option value="png">PNG Image (.png)</option>
-          <option value="jpg">JPG Image (.jpg)</option>
-          <option value="webp">WebP Image (.webp)</option>
-        </select>
-      </div>
-
-      <div id="panel-videos" class="format-panel">
-        <div class="control-label">Target format:</div>
-        <select class="select-box" id="target-videos">
-          <option value="mp4" selected>MP4 Video (.mp4)</option>
-          <option value="webm">WebM Video (.webm)</option>
-          <option value="gif">GIF Animation (.gif)</option>
-        </select>
-      </div>
-
-      <div id="panel-audio" class="format-panel">
-        <div class="control-label">Target format:</div>
-        <select class="select-box" id="target-audio">
-          <option value="mp3" selected>MP3 Audio (.mp3)</option>
-          <option value="wav">WAV Audio (.wav)</option>
-          <option value="aac">AAC Audio (.aac)</option>
-        </select>
-      </div>
+    <div class="control-group">
+      <label class="control-label">الصيغة المستهدفة:</label>
+      <select class="select-box" id="target-format"></select>
     </div>
 
-    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-      <div class="upload-icon">⚡</div>
-      <div class="upload-title">Click to upload file</div>
-      <div class="upload-hint" id="accept-text">All formats supported (.docx, .txt, .pdf, images, audio, video)</div>
+    <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+      <div>⚡ اضغط هنا اختيار الملف</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">يدعم DOCX, TXT, PNG, JPG, MP3, MP4 وغيرها</div>
       <input type="file" id="file-input" onchange="onFileSelected(this.files[0])">
     </div>
 
-    <div class="file-card" id="file-card">
-      <span class="file-name" id="file-name-txt">filename.ext</span>
-      <span class="file-size" id="file-size-txt">0 MB</span>
+    <div class="file-info" id="file-info">
+      <span id="file-name">filename.ext</span>
+      <span id="file-size" style="color: var(--text-muted)">0 MB</span>
     </div>
 
-    <button id="convert-btn" class="btn-convert" disabled onclick="executeConversion()">Start Conversion</button>
+    <button id="convert-btn" class="btn-convert" disabled onclick="executeConversion()">بدء التحويل</button>
 
     <div class="status-area" id="status-area"></div>
   </div>
 
   <script>
     let currentCategory = 'docs';
-    let currentFile = null;
-    let ffmpeg = null;
+    let selectedFile = null;
+    let ffmpegEngine = null;
 
-    function switchCategory(cat) {
-      currentCategory = cat;
-      const categories = ['docs', 'images', 'videos', 'audio'];
-      document.querySelectorAll('.cat-btn').forEach((btn, idx) => {
-        btn.classList.toggle('active', categories[idx] === cat);
+    const formatOptions = {
+      docs: [
+        { label: 'PDF Document (.pdf)', value: 'pdf' },
+        { label: 'Text File (.txt)', value: 'txt' }
+      ],
+      images: [
+        { label: 'PDF Document (.pdf)', value: 'pdf' },
+        { label: 'PNG Image (.png)', value: 'png' },
+        { label: 'JPG Image (.jpg)', value: 'jpg' },
+        { label: 'WebP Image (.webp)', value: 'webp' }
+      ],
+      videos: [
+        { label: 'MP4 Video (.mp4)', value: 'mp4' },
+        { label: 'WebM Video (.webm)', value: 'webm' },
+        { label: 'GIF Animation (.gif)', value: 'gif' }
+      ],
+      audio: [
+        { label: 'MP3 Audio (.mp3)', value: 'mp3' },
+        { label: 'WAV Audio (.wav)', value: 'wav' }
+      ]
+    };
+
+    function updateOptions() {
+      const select = document.getElementById('target-format');
+      select.innerHTML = '';
+      formatOptions[currentCategory].forEach(opt => {
+        const el = document.createElement('option');
+        el.value = opt.value;
+        el.innerText = opt.label;
+        select.appendChild(el);
       });
+    }
 
-      document.querySelectorAll('.format-panel').forEach(panel => panel.classList.remove('active'));
-      document.getElementById(`panel-${cat}`).classList.add('active');
-
-      resetUI();
+    function switchCategory(cat, btn) {
+      currentCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateOptions();
+      resetState();
     }
 
     function onFileSelected(file) {
       if (!file) return;
-      currentFile = file;
-
-      document.getElementById('file-name-txt').innerText = file.name;
-      document.getElementById('file-size-txt').innerText = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
-      document.getElementById('file-card').classList.add('active');
-
+      selectedFile = file;
+      document.getElementById('file-name').innerText = file.name;
+      document.getElementById('file-size').innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+      document.getElementById('file-info').classList.add('active');
       document.getElementById('convert-btn').disabled = false;
       document.getElementById('status-area').innerHTML = '';
     }
 
-    function resetUI() {
-      currentFile = null;
+    function resetState() {
+      selectedFile = null;
       document.getElementById('file-input').value = '';
-      document.getElementById('file-card').classList.remove('active');
+      document.getElementById('file-info').classList.remove('active');
       document.getElementById('convert-btn').disabled = true;
       document.getElementById('status-area').innerHTML = '';
     }
 
     async function executeConversion() {
-      if (!currentFile) return;
+      if (!selectedFile) return;
 
-      const activeSelect = document.getElementById(`target-${currentCategory}`);
-      const targetFormat = activeSelect.value;
+      const targetFormat = document.getElementById('target-format').value;
       const statusArea = document.getElementById('status-area');
+      const baseName = selectedFile.name.substring(0, selectedFile.name.lastIndexOf('.')) || selectedFile.name;
 
-      statusArea.innerHTML = `<span style="color: var(--text-muted)">⏳ Processing file... Please wait.</span>`;
+      statusArea.innerHTML = '⏳ جاري المعالجة... يرجى الانتظار';
 
       try {
-        // 1. DOCUMENTS SECTION
-        if (currentCategory === 'docs' || targetFormat === 'pdf' || targetFormat === 'txt') {
-          if (currentFile.name.toLowerCase().endsWith('.docx') && targetFormat === 'pdf') {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-              mammoth.extractRawText({ arrayBuffer: e.target.result })
-                .then(function(result) {
-                  const { jsPDF } = window.jspdf;
-                  const doc = new jsPDF();
-                  const splitText = doc.splitTextToSize(result.value, 180);
-                  let y = 10;
-                  splitText.forEach(line => {
-                    if (y > 280) { doc.addPage(); y = 10; }
-                    doc.text(line, 10, y);
-                    y += 7;
-                  });
-                  downloadBlob(doc.output('blob'), `${getFileName()}.${targetFormat}`, 'application/pdf');
-                });
-            };
-            reader.readAsArrayBuffer(currentFile);
+        // 1. معالجة المستندات (DOCX / TXT)
+        if (currentCategory === 'docs') {
+          if (selectedFile.name.toLowerCase().endsWith('.docx') && targetFormat === 'pdf') {
+            const buffer = await selectedFile.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const lines = doc.splitTextToSize(result.value, 180);
+            
+            let y = 10;
+            lines.forEach(line => {
+              if (y > 280) { doc.addPage(); y = 10; }
+              doc.text(line, 10, y);
+              y += 7;
+            });
+
+            createDownload(doc.output('blob'), `${baseName}.pdf`, 'application/pdf');
             return;
           }
 
           if (targetFormat === 'txt') {
-            if (currentFile.name.toLowerCase().endsWith('.docx')) {
-              const reader = new FileReader();
-              reader.onload = function(e) {
-                mammoth.extractRawText({ arrayBuffer: e.target.result }).then(res => {
-                  downloadBlob(new Blob([res.value], { type: 'text/plain' }), `${getFileName()}.txt`, 'text/plain');
-                });
-              };
-              reader.readAsArrayBuffer(currentFile);
-              return;
+            let textContent = '';
+            if (selectedFile.name.toLowerCase().endsWith('.docx')) {
+              const buffer = await selectedFile.arrayBuffer();
+              const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+              textContent = result.value;
             } else {
-              const reader = new FileReader();
-              reader.onload = function(e) {
-                downloadBlob(new Blob([e.target.result], { type: 'text/plain' }), `${getFileName()}.txt`, 'text/plain');
-              };
-              reader.readAsText(currentFile);
-              return;
+              textContent = await selectedFile.text();
             }
+            createDownload(new Blob([textContent], { type: 'text/plain' }), `${baseName}.txt`, 'text/plain');
+            return;
           }
         }
 
-        // 2. IMAGES SECTION
-        if (currentCategory === 'images' || currentFile.type.startsWith('image/')) {
+        // 2. معالجة الصور
+        if (currentCategory === 'images' || selectedFile.type.startsWith('image/')) {
           if (targetFormat === 'pdf') {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -335,14 +287,14 @@
               img.onload = function() {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
-                const imgWidth = doc.internal.pageSize.getWidth();
-                const imgHeight = (img.height * imgWidth) / img.width;
-                doc.addImage(e.target.result, 'JPEG', 0, 0, imgWidth, imgHeight);
-                downloadBlob(doc.output('blob'), `${getFileName()}.pdf`, 'application/pdf');
+                const width = doc.internal.pageSize.getWidth();
+                const height = (img.height * width) / img.width;
+                doc.addImage(e.target.result, 'JPEG', 0, 0, width, height);
+                createDownload(doc.output('blob'), `${baseName}.pdf`, 'application/pdf');
               };
               img.src = e.target.result;
             };
-            reader.readAsDataURL(currentFile);
+            reader.readAsDataURL(selectedFile);
             return;
           }
 
@@ -358,64 +310,58 @@
                 ctx.drawImage(img, 0, 0);
                 const mime = targetFormat === 'jpg' ? 'image/jpeg' : `image/${targetFormat}`;
                 canvas.toBlob(blob => {
-                  downloadBlob(blob, `${getFileName()}.${targetFormat}`, mime);
+                  createDownload(blob, `${baseName}.${targetFormat}`, mime);
                 }, mime, 0.92);
               };
               img.src = e.target.result;
             };
-            reader.readAsDataURL(currentFile);
+            reader.readAsDataURL(selectedFile);
             return;
           }
         }
 
-        // 3. AUDIO & VIDEO SECTION (FFmpeg WebAssembly)
+        // 3. معالجة الوسائط عبر FFmpeg (الصوت والفيديو)
         if (currentCategory === 'videos' || currentCategory === 'audio') {
-          statusArea.innerHTML = `<span style="color: var(--text-muted)">⏳ Loading engine...</span>`;
+          statusArea.innerHTML = '⏳ جاري تهيئة المحرك...';
           
-          if (!ffmpeg) {
+          if (!ffmpegEngine) {
             const { createFFmpeg } = FFmpeg;
-            ffmpeg = createFFmpeg({ log: false });
-            await ffmpeg.load();
+            ffmpegEngine = createFFmpeg({ log: false });
+            await ffmpegEngine.load();
           }
 
-          statusArea.innerHTML = `<span style="color: var(--text-muted)">⏳ Processing media...</span>`;
-
+          statusArea.innerHTML = '⏳ جاري تحويل الملف...';
           const { fetchFile } = FFmpeg;
-          const inputExt = currentFile.name.split('.').pop();
-          const inputName = `input.${inputExt}`;
-          const outputName = `output.${targetFormat}`;
+          const ext = selectedFile.name.split('.').pop();
+          const inName = `input.${ext}`;
+          const outName = `output.${targetFormat}`;
 
-          ffmpeg.FS('writeFile', inputName, await fetchFile(currentFile));
-          await ffmpeg.run('-i', inputName, outputName);
+          ffmpegEngine.FS('writeFile', inName, await fetchFile(selectedFile));
+          await ffmpegEngine.run('-i', inName, outName);
 
-          const data = ffmpeg.FS('readFile', outputName);
-          const mimeTypes = {
-            mp3: 'audio/mp3', wav: 'audio/wav', aac: 'audio/aac',
-            mp4: 'video/mp4', webm: 'video/webm', gif: 'image/gif'
-          };
-
-          const blob = new Blob([data.buffer], { type: mimeTypes[targetFormat] || 'application/octet-stream' });
-          downloadBlob(blob, `${getFileName()}.${targetFormat}`, mimeTypes[targetFormat]);
+          const data = ffmpegEngine.FS('readFile', outName);
+          const mimeTypes = { mp3: 'audio/mp3', wav: 'audio/wav', mp4: 'video/mp4', webm: 'video/webm', gif: 'image/gif' };
           
-          ffmpeg.FS('unlink', inputName);
-          ffmpeg.FS('unlink', outputName);
+          const blob = new Blob([data.buffer], { type: mimeTypes[targetFormat] || 'application/octet-stream' });
+          createDownload(blob, `${baseName}.${targetFormat}`, mimeTypes[targetFormat]);
+          
+          ffmpegEngine.FS('unlink', inName);
+          ffmpegEngine.FS('unlink', outName);
           return;
         }
 
       } catch (err) {
-        statusArea.innerHTML = `<div class="status-info">❌ Error: ${err.message}</div>`;
+        statusArea.innerHTML = `<span class="status-error">❌ خطأ في المعالجة: ${err.message}</span>`;
       }
     }
 
-    function getFileName() {
-      return currentFile.name.substring(0, currentFile.name.lastIndexOf('.')) || currentFile.name;
-    }
-
-    function downloadBlob(blob, fileName, mimeType) {
+    function createDownload(blob, fileName, mimeType) {
       const url = URL.createObjectURL(blob);
       const statusArea = document.getElementById('status-area');
-      statusArea.innerHTML = `<div class="status-success">✓ Conversion Complete!<br><br><a href="${url}" download="${fileName}">Click Here to Download (${fileName})</a></div>`;
+      statusArea.innerHTML = `<div class="status-success">✓ تم التحويل بنجاح!<br><br><a href="${url}" download="${fileName}">اضغط هنا لتحميل الملف (${fileName})</a></div>`;
     }
+
+    updateOptions();
   </script>
 </body>
 </html>
