@@ -253,16 +253,30 @@
               htmlContent = `<pre style="white-space: pre-wrap; font-family: inherit;">${text}</pre>`;
             }
 
-            // فتح نافذة طباعة جديدة تتيح حفظ الملف كـ PDF بالخطوط الصحيحة 100%
+            // إجبار اتجاه النص والمحاذاة من اليمين إلى اليسار (RTL)
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
               <!DOCTYPE html>
-              <html>
+              <html lang="ar" dir="rtl">
               <head>
+                <meta charset="UTF-8">
                 <title>${baseName}</title>
                 <style>
-                  body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; line-height: 1.6; color: #000; }
-                  @media print { body { padding: 0; } }
+                  body {
+                    font-family: system-ui, -apple-system, sans-serif;
+                    padding: 40px;
+                    line-height: 1.8;
+                    color: #000;
+                    direction: rtl;
+                    text-align: right;
+                  }
+                  ol, ul {
+                    padding-right: 20px;
+                    padding-left: 0;
+                  }
+                  @media print {
+                    body { padding: 0; }
+                  }
                 </style>
               </head>
               <body>
