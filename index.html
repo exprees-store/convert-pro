@@ -1,18 +1,21 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>المحول الشامل للملفات Pro</title>
+  <title>Universal File Converter Pro</title>
   
-  <!-- مكتبات PDF والوورد -->
+  <!-- PDF and Word Extraction Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  
+  <!-- Audio & Video Processing Engine (FFmpeg.wasm) -->
   <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
   <style>
     :root {
       --primary: #4f46e5;
+      --primary-hover: #4338ca;
       --bg-main: #0f172a;
       --card-bg: #1e293b;
       --card-inner: #0f172a;
@@ -135,25 +138,25 @@
 
   <div class="app-card">
     <div class="header">
-      <h1>المحول الشامل للملفات</h1>
-      <p>معالجة مباشرة ودعم كامل للغة العربية</p>
+      <h1>Universal File Converter</h1>
+      <p>Fast, secure, and client-side conversion for all file types</p>
     </div>
 
     <div class="category-nav">
-      <button class="cat-btn active" onclick="switchCategory('docs', this)">📄 المستندات</button>
-      <button class="cat-btn" onclick="switchCategory('images', this)">🖼️ الصور</button>
-      <button class="cat-btn" onclick="switchCategory('videos', this)">🎬 الفيديو</button>
-      <button class="cat-btn" onclick="switchCategory('audio', this)">🎵 الصوت</button>
+      <button class="cat-btn active" onclick="switchCategory('docs', this)">📄 Documents</button>
+      <button class="cat-btn" onclick="switchCategory('images', this)">🖼️ Images</button>
+      <button class="cat-btn" onclick="switchCategory('videos', this)">🎬 Videos</button>
+      <button class="cat-btn" onclick="switchCategory('audio', this)">🎵 Audio</button>
     </div>
 
     <div class="control-group">
-      <label class="control-label">الصيغة المستهدفة:</label>
+      <label class="control-label">Target Format:</label>
       <select class="select-box" id="target-format"></select>
     </div>
 
     <div class="upload-zone" onclick="document.getElementById('file-input').click()">
-      <div>⚡ اضغط هنا اختيار الملف</div>
-      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">يدعم DOCX, TXT, PNG, JPG, MP3, MP4 وغيرها</div>
+      <div>⚡ Click here to choose a file</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Supports DOCX, TXT, PNG, JPG, MP3, MP4 & more</div>
       <input type="file" id="file-input" onchange="onFileSelected(this.files[0])">
     </div>
 
@@ -162,7 +165,7 @@
       <span id="file-size" style="color: var(--text-muted)">0 MB</span>
     </div>
 
-    <button id="convert-btn" class="btn-convert" disabled onclick="executeConversion()">بدء التحويل</button>
+    <button id="convert-btn" class="btn-convert" disabled onclick="executeConversion()">Start Conversion</button>
 
     <div class="status-area" id="status-area"></div>
   </div>
@@ -238,7 +241,7 @@
       const statusArea = document.getElementById('status-area');
       const baseName = selectedFile.name.substring(0, selectedFile.name.lastIndexOf('.')) || selectedFile.name;
 
-      statusArea.innerHTML = '⏳ جاري المعالجة... يرجى الانتظار';
+      statusArea.innerHTML = '⏳ Processing... Please wait';
 
       try {
         if (currentCategory === 'docs') {
@@ -252,7 +255,7 @@
             let y = 15;
             lines.forEach(line => {
               if (y > 280) { doc.addPage(); y = 15; }
-              doc.text(line, 200, y, { align: 'right', isRTL: true });
+              doc.text(line, 10, y, { align: 'left', isRTL: false });
               y += 7;
             });
 
@@ -316,7 +319,7 @@
         }
 
         if (currentCategory === 'videos' || currentCategory === 'audio') {
-          statusArea.innerHTML = '⏳ جاري تهيئة المحرك...';
+          statusArea.innerHTML = '⏳ Initializing media engine...';
           
           if (!ffmpegEngine) {
             const { createFFmpeg } = FFmpeg;
@@ -324,7 +327,7 @@
             await ffmpegEngine.load();
           }
 
-          statusArea.innerHTML = '⏳ جاري تحويل الملف...';
+          statusArea.innerHTML = '⏳ Converting media file...';
           const { fetchFile } = FFmpeg;
           const ext = selectedFile.name.split('.').pop();
           const inName = `input.${ext}`;
@@ -345,14 +348,14 @@
         }
 
       } catch (err) {
-        statusArea.innerHTML = `<span class="status-error">❌ خطأ في المعالجة: ${err.message}</span>`;
+        statusArea.innerHTML = `<span class="status-error">❌ Processing Error: ${err.message}</span>`;
       }
     }
 
     function createDownload(blob, fileName, mimeType) {
       const url = URL.createObjectURL(blob);
       const statusArea = document.getElementById('status-area');
-      statusArea.innerHTML = `<div class="status-success">✓ تم التحويل بنجاح!<br><br><a href="${url}" download="${fileName}">اضغط هنا لتحميل الملف (${fileName})</a></div>`;
+      statusArea.innerHTML = `<div class="status-success">✓ Conversion completed!<br><br><a href="${url}" download="${fileName}">Click here to download (${fileName})</a></div>`;
     }
 
     updateOptions();
