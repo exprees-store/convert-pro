@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Universal File Converter Pro</title>
   
-  <!-- Mammoth للتعامل مع ملفات الوورد -->
+  <!-- Mammoth extraction engine for DOCX -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   
-  <!-- html2pdf لحل مشكلة الترميز واللغة العربية/الإنجليزية في PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  
-  <!-- محرك FFmpeg للصوت والفيديو -->
+  <!-- Media Processing Engine (FFmpeg.wasm) -->
   <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
   <style>
@@ -171,9 +168,6 @@
     <div class="status-area" id="status-area"></div>
   </div>
 
-  <!-- حاوية مخفية لمعالجة نصوص المستندات وترجمتها إلى PDF بشكل صحيح -->
-  <div id="pdf-render-temp" style="display: none; padding: 20px; color: #000; background: #fff; font-family: Arial, sans-serif; line-height: 1.6;"></div>
-
   <script>
     let currentCategory = 'docs';
     let selectedFile = null;
@@ -185,7 +179,6 @@
         { label: 'Text File (.txt)', value: 'txt' }
       ],
       images: [
-        { label: 'PDF Document (.pdf)', value: 'pdf' },
         { label: 'PNG Image (.png)', value: 'png' },
         { label: 'JPG Image (.jpg)', value: 'jpg' },
         { label: 'WebP Image (.webp)', value: 'webp' }
@@ -248,29 +241,43 @@
       statusArea.innerHTML = '⏳ Processing... Please wait';
 
       try {
-        // 1. معالجة المستندات بـ html2pdf (حل مشكلة الترميز)
         if (currentCategory === 'docs') {
-          if (selectedFile.name.toLowerCase().endsWith('.docx') && targetFormat === 'pdf') {
-            const buffer = await selectedFile.arrayBuffer();
-            const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
-            
-            const renderContainer = document.getElementById('pdf-render-temp');
-            renderContainer.innerHTML = result.value;
-            renderContainer.style.display = 'block';
+          if (targetFormat === 'pdf') {
+            let htmlContent = '';
+            if (selectedFile.name.toLowerCase().endsWith('.docx')) {
+              const buffer = await selectedFile.arrayBuffer();
+              const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
+              htmlContent = result.value;
+            } else {
+              const text = await selectedFile.text();
+              htmlContent = `<pre style="white-space: pre-wrap; font-family: inherit;">${text}</pre>`;
+            }
 
-            const opt = {
-              margin:       10,
-              filename:     `${baseName}.pdf`,
-              image:        { type: 'jpeg', quality: 0.98 },
-              html2canvas:  { scale: 2 },
-              jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            const pdfBlob = await html2pdf().set(opt).from(renderContainer).output('blob');
-            renderContainer.style.display = 'none';
-            renderContainer.innerHTML = '';
-
-            createDownload(pdfBlob, `${baseName}.pdf`, 'application/pdf');
+            // فتح نافذة طباعة جديدة تتيح حفظ الملف كـ PDF بالخطوط الصحيحة 100%
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <title>${baseName}</title>
+                <style>
+                  body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; line-height: 1.6; color: #000; }
+                  @media print { body { padding: 0; } }
+                </style>
+              </head>
+              <body>
+                ${htmlContent}
+                <script>
+                  window.onload = function() {
+                    window.print();
+                    window.close();
+                  };
+                <\/script>
+              </body>
+              </html>
+            `);
+            printWindow.document.close();
+            statusArea.innerHTML = '<span class="status-success">✓ Print window opened! Select "Save as PDF".</span>';
             return;
           }
 
@@ -288,30 +295,7 @@
           }
         }
 
-        // 2. معالجة الصور
         if (currentCategory === 'images' || selectedFile.type.startsWith('image/')) {
-          if (targetFormat === 'pdf') {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-              const imgContainer = document.createElement('div');
-              imgContainer.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: auto;" />`;
-              
-              const opt = {
-                margin:       5,
-                filename:     `${baseName}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-              };
-
-              html2pdf().set(opt).from(imgContainer).output('blob').then(pdfBlob => {
-                createDownload(pdfBlob, `${baseName}.pdf`, 'application/pdf');
-              });
-            };
-            reader.readAsDataURL(selectedFile);
-            return;
-          }
-
           if (['jpg', 'png', 'webp'].includes(targetFormat)) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -334,7 +318,6 @@
           }
         }
 
-        // 3. الصوت والفيديو
         if (currentCategory === 'videos' || currentCategory === 'audio') {
           statusArea.innerHTML = '⏳ Initializing media engine...';
           
