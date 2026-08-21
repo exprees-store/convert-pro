@@ -139,15 +139,15 @@
 
   <div class="app-card">
     <div class="header">
-      <h1>Universal File Converter</h1>
+      <h1>Universal File Converter Pro</h1>
       <p>Fast, secure, and client-side conversion for all file types</p>
     </div>
 
     <div class="category-nav">
-      <button class="cat-btn active" onclick="switchCategory('docs', this)">📄 Documents</button>
-      <button class="cat-btn" onclick="switchCategory('images', this)">🖼️ Images</button>
-      <button class="cat-btn" onclick="switchCategory('videos', this)">🎬 Videos</button>
-      <button class="cat-btn" onclick="switchCategory('audio', this)">🎵 Audio</button>
+      <button class="cat-btn active" id="btn-docs" onclick="switchCategory('docs', this)">📄 Documents</button>
+      <button class="cat-btn" id="btn-images" onclick="switchCategory('images', this)">🖼️ Images</button>
+      <button class="cat-btn" id="btn-videos" onclick="switchCategory('videos', this)">🎬 Videos</button>
+      <button class="cat-btn" id="btn-audio" onclick="switchCategory('audio', this)">🎵 Audio</button>
     </div>
 
     <div class="control-group">
@@ -157,7 +157,7 @@
 
     <div class="upload-zone" onclick="document.getElementById('file-input').click()">
       <div>⚡ Click here to choose a file</div>
-      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Supports DOCX, TXT, PNG, JPG, MP3, MP4 & more</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Supports DOCX, TXT, HTML, PNG, JPG, WEBP, MP3, WAV, MP4, AVI, MKV & more</div>
       <input type="file" id="file-input" onchange="onFileSelected(this.files[0])">
     </div>
 
@@ -176,25 +176,35 @@
     let selectedFile = null;
     let ffmpegEngine = null;
 
+    // قائمة توسيع الصيغ الشاملة لجميع الأقسام
     const formatOptions = {
       docs: [
         { label: 'PDF Document (.pdf)', value: 'pdf' },
-        { label: 'Text File (.txt)', value: 'txt' }
+        { label: 'Text File (.txt)', value: 'txt' },
+        { label: 'HTML Web Page (.html)', value: 'html' }
       ],
       images: [
-        { label: 'PDF Document (.pdf)', value: 'pdf' },
         { label: 'PNG Image (.png)', value: 'png' },
         { label: 'JPG Image (.jpg)', value: 'jpg' },
-        { label: 'WebP Image (.webp)', value: 'webp' }
+        { label: 'WebP Image (.webp)', value: 'webp' },
+        { label: 'PDF Document (.pdf)', value: 'pdf' },
+        { label: 'BMP Image (.bmp)', value: 'bmp' }
       ],
       videos: [
         { label: 'MP4 Video (.mp4)', value: 'mp4' },
         { label: 'WebM Video (.webm)', value: 'webm' },
-        { label: 'GIF Animation (.gif)', value: 'gif' }
+        { label: 'AVI Video (.avi)', value: 'avi' },
+        { label: 'MKV Video (.mkv)', value: 'mkv' },
+        { label: 'MOV Video (.mov)', value: 'mov' },
+        { label: 'GIF Animation (.gif)', value: 'gif' },
+        { label: 'MP3 Audio (Extract) (.mp3)', value: 'mp3' }
       ],
       audio: [
         { label: 'MP3 Audio (.mp3)', value: 'mp3' },
-        { label: 'WAV Audio (.wav)', value: 'wav' }
+        { label: 'WAV Audio (.wav)', value: 'wav' },
+        { label: 'OGG Audio (.ogg)', value: 'ogg' },
+        { label: 'AAC Audio (.aac)', value: 'aac' },
+        { label: 'FLAC Audio (.flac)', value: 'flac' }
       ]
     };
 
@@ -212,13 +222,35 @@
     function switchCategory(cat, btn) {
       currentCategory = cat;
       document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      if (btn) btn.classList.add('active');
       updateOptions();
       resetState();
     }
 
+    function autoDetectCategory(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      let targetCat = 'docs';
+
+      if (['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'svg', 'tiff'].includes(ext)) {
+        targetCat = 'images';
+      } else if (['mp4', 'webm', 'avi', 'mkv', 'mov', 'flv', 'wmv'].includes(ext)) {
+        targetCat = 'videos';
+      } else if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(ext)) {
+        targetCat = 'audio';
+      } else if (['docx', 'doc', 'txt', 'html', 'htm', 'pdf', 'rtf'].includes(ext)) {
+        targetCat = 'docs';
+      }
+
+      const btn = document.getElementById(`btn-${targetCat}`);
+      switchCategory(targetCat, btn);
+    }
+
     function onFileSelected(file) {
       if (!file) return;
+      selectedFile = file;
+      autoDetectCategory(file);
+      
+      // Re-assign selected file after resetState in switchCategory
       selectedFile = file;
       document.getElementById('file-name').innerText = file.name;
       document.getElementById('file-size').innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
@@ -245,19 +277,19 @@
       statusArea.innerHTML = '⏳ Processing... Please wait';
 
       try {
+        // 1. Documents Conversion
         if (currentCategory === 'docs') {
-          if (targetFormat === 'pdf') {
-            let htmlContent = '';
-            if (selectedFile.name.toLowerCase().endsWith('.docx')) {
-              const buffer = await selectedFile.arrayBuffer();
-              const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
-              htmlContent = result.value;
-            } else {
-              const text = await selectedFile.text();
-              htmlContent = `<pre style="white-space: pre-wrap; font-family: inherit;">${text}</pre>`;
-            }
+          let htmlContent = '';
+          if (selectedFile.name.toLowerCase().endsWith('.docx')) {
+            const buffer = await selectedFile.arrayBuffer();
+            const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
+            htmlContent = result.value;
+          } else {
+            const text = await selectedFile.text();
+            htmlContent = `<pre style="white-space: pre-wrap; font-family: inherit;">${text}</pre>`;
+          }
 
-            // حاوية المحتوى مع توجيه تلقائي ذكي حسب اللغة
+          if (targetFormat === 'pdf') {
             const container = document.createElement('div');
             container.setAttribute('dir', 'auto');
             container.style.padding = '20px';
@@ -293,8 +325,14 @@
             createDownload(new Blob([textContent], { type: 'text/plain;charset=utf-8' }), `${baseName}.txt`, 'text/plain');
             return;
           }
+
+          if (targetFormat === 'html') {
+            createDownload(new Blob([htmlContent], { type: 'text/html;charset=utf-8' }), `${baseName}.html`, 'text/html');
+            return;
+          }
         }
 
+        // 2. Images Conversion
         if (currentCategory === 'images' || selectedFile.type.startsWith('image/')) {
           if (targetFormat === 'pdf') {
             const reader = new FileReader();
@@ -317,7 +355,7 @@
             return;
           }
 
-          if (['jpg', 'png', 'webp'].includes(targetFormat)) {
+          if (['jpg', 'png', 'webp', 'bmp'].includes(targetFormat)) {
             const reader = new FileReader();
             reader.onload = function(e) {
               const img = new Image();
@@ -339,6 +377,7 @@
           }
         }
 
+        // 3. Audio & Video Conversion
         if (currentCategory === 'videos' || currentCategory === 'audio') {
           statusArea.innerHTML = '⏳ Initializing media engine...';
           
@@ -358,7 +397,10 @@
           await ffmpegEngine.run('-i', inName, outName);
 
           const data = ffmpegEngine.FS('readFile', outName);
-          const mimeTypes = { mp3: 'audio/mp3', wav: 'audio/wav', mp4: 'video/mp4', webm: 'video/webm', gif: 'image/gif' };
+          const mimeTypes = { 
+            mp3: 'audio/mp3', wav: 'audio/wav', ogg: 'audio/ogg', aac: 'audio/aac', flac: 'audio/flac',
+            mp4: 'video/mp4', webm: 'video/webm', avi: 'video/x-msvideo', mkv: 'video/x-matroska', mov: 'video/quicktime', gif: 'image/gif' 
+          };
           
           const blob = new Blob([data.buffer], { type: mimeTypes[targetFormat] || 'application/octet-stream' });
           createDownload(blob, `${baseName}.${targetFormat}`, mimeTypes[targetFormat]);
