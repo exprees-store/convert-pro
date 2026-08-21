@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Universal File Converter Pro</title>
   
+  <!-- سكريبت لتفعيل SharedArrayBuffer و FFmpeg على GitHub Pages -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/coi-serviceworker/0.1.7/coi-serviceworker.min.js"></script>
+
   <!-- Mammoth extraction engine for DOCX -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   
@@ -37,6 +40,7 @@
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 20px;
@@ -136,6 +140,14 @@
     .status-success { color: var(--success); }
     .status-error { color: var(--danger); }
     .status-success a { color: #818cf8; font-weight: bold; }
+
+    .privacy-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      max-width: 650px;
+    }
   </style>
 </head>
 <body>
@@ -172,6 +184,10 @@
     <button id="convert-btn" class="btn-convert" disabled onclick="executeConversion()">Start Conversion</button>
 
     <div class="status-area" id="status-area"></div>
+  </div>
+
+  <div class="privacy-footer">
+    🔒 <b>الأمان والخصوصية:</b> تتم جميع عمليات التحويل داخل متصفحك مباشرة دون رفع ملفاتك لأي خادم خارجي.
   </div>
 
   <script>
@@ -276,6 +292,13 @@
       const targetFormat = document.getElementById('target-format').value;
       const statusArea = document.getElementById('status-area');
       const baseName = selectedFile.name.substring(0, selectedFile.name.lastIndexOf('.')) || selectedFile.name;
+
+      // حماية ضد انهيار المتصفح للملفات الكبيرة (أكثر من 150 ميجابايت للميديا)
+      const maxMediaSize = 150 * 1024 * 1024;
+      if ((currentCategory === 'videos' || currentCategory === 'audio') && selectedFile.size > maxMediaSize) {
+        statusArea.innerHTML = `<span class="status-error">⚠️ حجم الملف كبير جداً للتحويل المحلي. يرجى اختيار ملف أقل من 150 ميجابايت.</span>`;
+        return;
+      }
 
       statusArea.innerHTML = '⏳ Processing... Please wait';
 
