@@ -176,12 +176,14 @@
     let selectedFile = null;
     let ffmpegEngine = null;
 
+    // استعادة جميع صيغ التحويل الكاملة
     const formatOptions = {
       docs: [
         { label: 'PDF Document (.pdf)', value: 'pdf' },
         { label: 'Text File (.txt)', value: 'txt' }
       ],
       images: [
+        { label: 'PDF Document (.pdf)', value: 'pdf' },
         { label: 'PNG Image (.png)', value: 'png' },
         { label: 'JPG Image (.jpg)', value: 'jpg' },
         { label: 'WebP Image (.webp)', value: 'webp' }
@@ -244,6 +246,7 @@
       statusArea.innerHTML = '⏳ Processing... Please wait';
 
       try {
+        // 1. تحويل المستندات النصية
         if (currentCategory === 'docs') {
           if (targetFormat === 'pdf') {
             let htmlContent = '';
@@ -256,7 +259,6 @@
               htmlContent = `<pre style="white-space: pre-wrap; font-family: inherit;">${text}</pre>`;
             }
 
-            // إنشاء عنصر افتراضي مؤقت للرسم وبث المخرجات مباشرة
             const container = document.createElement('div');
             container.style.padding = '20px';
             container.style.color = '#000';
@@ -275,7 +277,6 @@
               jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            // التنزيل المباشر للملف دون فتح نافذة طباعة
             await html2pdf().set(opt).from(container).save();
             statusArea.innerHTML = `<div class="status-success">✓ File downloaded successfully as <b>${baseName}.pdf</b>!</div>`;
             return;
@@ -295,7 +296,29 @@
           }
         }
 
+        // 2. تحويل الصور (بما فيها تحويل الصور إلى PDF)
         if (currentCategory === 'images' || selectedFile.type.startsWith('image/')) {
+          if (targetFormat === 'pdf') {
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+              const imgContainer = document.createElement('div');
+              imgContainer.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: auto;" />`;
+              
+              const opt = {
+                margin:       5,
+                filename:     `${baseName}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+              };
+
+              await html2pdf().set(opt).from(imgContainer).save();
+              statusArea.innerHTML = `<div class="status-success">✓ Image converted to PDF and downloaded!</div>`;
+            };
+            reader.readAsDataURL(selectedFile);
+            return;
+          }
+
           if (['jpg', 'png', 'webp'].includes(targetFormat)) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -318,6 +341,7 @@
           }
         }
 
+        // 3. تحويل الفيديو والصوت
         if (currentCategory === 'videos' || currentCategory === 'audio') {
           statusArea.innerHTML = '⏳ Initializing media engine...';
           
