@@ -11,6 +11,9 @@
   <!-- html2pdf engine for Direct PDF generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
+  <!-- docx Library for Word Generation -->
+  <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+  
   <!-- Media Processing Engine (FFmpeg.wasm) -->
   <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
@@ -157,7 +160,7 @@
 
     <div class="upload-zone" onclick="document.getElementById('file-input').click()">
       <div>⚡ Click here to choose a file</div>
-      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Supports DOCX, TXT, HTML, PNG, JPG, WEBP, MP3, WAV, MP4, AVI, MKV & more</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Supports DOCX, TXT, HTML, PNG, JPG, WEBP, MP3, WAV, MP4 & more</div>
       <input type="file" id="file-input" onchange="onFileSelected(this.files[0])">
     </div>
 
@@ -176,9 +179,9 @@
     let selectedFile = null;
     let ffmpegEngine = null;
 
-    // قائمة توسيع الصيغ الشاملة لجميع الأقسام
     const formatOptions = {
       docs: [
+        { label: 'Word Document (.docx)', value: 'docx' },
         { label: 'PDF Document (.pdf)', value: 'pdf' },
         { label: 'Text File (.txt)', value: 'txt' },
         { label: 'HTML Web Page (.html)', value: 'html' }
@@ -188,6 +191,7 @@
         { label: 'JPG Image (.jpg)', value: 'jpg' },
         { label: 'WebP Image (.webp)', value: 'webp' },
         { label: 'PDF Document (.pdf)', value: 'pdf' },
+        { label: 'Word Document (.docx)', value: 'docx' },
         { label: 'BMP Image (.bmp)', value: 'bmp' }
       ],
       videos: [
@@ -250,7 +254,6 @@
       selectedFile = file;
       autoDetectCategory(file);
       
-      // Re-assign selected file after resetState in switchCategory
       selectedFile = file;
       document.getElementById('file-name').innerText = file.name;
       document.getElementById('file-size').innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
@@ -279,17 +282,40 @@
       try {
         // 1. Documents Conversion
         if (currentCategory === 'docs') {
-          let htmlContent = '';
+          let textContent = '';
           if (selectedFile.name.toLowerCase().endsWith('.docx')) {
             const buffer = await selectedFile.arrayBuffer();
-            const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
-            htmlContent = result.value;
+            const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+            textContent = result.value;
           } else {
-            const text = await selectedFile.text();
-            htmlContent = `<pre style="white-space: pre-wrap; font-family: inherit;">${text}</pre>`;
+            textContent = await selectedFile.text();
+          }
+
+          if (targetFormat === 'docx') {
+            const lines = textContent.split('\n');
+            const paragraphs = lines.map(line => new docx.Paragraph({
+              children: [new docx.TextRun(line)]
+            }));
+
+            const doc = new docx.Document({
+              sections: [{ properties: {}, children: paragraphs }]
+            });
+
+            const blob = await docx.Packer.toBlob(doc);
+            createDownload(blob, `${baseName}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+            return;
           }
 
           if (targetFormat === 'pdf') {
+            let htmlContent = '';
+            if (selectedFile.name.toLowerCase().endsWith('.docx')) {
+              const buffer = await selectedFile.arrayBuffer();
+              const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
+              htmlContent = result.value;
+            } else {
+              htmlContent = `<pre style="white-space: pre-wrap; font-family: inherit;">${textContent}</pre>`;
+            }
+
             const container = document.createElement('div');
             container.setAttribute('dir', 'auto');
             container.style.padding = '20px';
@@ -314,19 +340,14 @@
           }
 
           if (targetFormat === 'txt') {
-            let textContent = '';
-            if (selectedFile.name.toLowerCase().endsWith('.docx')) {
-              const buffer = await selectedFile.arrayBuffer();
-              const result = await mammoth.extractRawText({ arrayBuffer: buffer });
-              textContent = result.value;
-            } else {
-              textContent = await selectedFile.text();
-            }
             createDownload(new Blob([textContent], { type: 'text/plain;charset=utf-8' }), `${baseName}.txt`, 'text/plain');
             return;
           }
 
           if (targetFormat === 'html') {
+            const htmlContent = selectedFile.name.toLowerCase().endsWith('.docx') 
+              ? (await mammoth.convertToHtml({ arrayBuffer: await selectedFile.arrayBuffer() })).value 
+              : `<pre>${textContent}</pre>`;
             createDownload(new Blob([htmlContent], { type: 'text/html;charset=utf-8' }), `${baseName}.html`, 'text/html');
             return;
           }
@@ -334,6 +355,28 @@
 
         // 2. Images Conversion
         if (currentCategory === 'images' || selectedFile.type.startsWith('image/')) {
+          if (targetFormat === 'docx') {
+            const arrayBuffer = await selectedFile.arrayBuffer();
+            const doc = new docx.Document({
+              sections: [{
+                properties: {},
+                children: [
+                  new docx.Paragraph({
+                    children: [
+                      new docx.ImageRun({
+                        data: arrayBuffer,
+                        transformation: { width: 500, height: 350 }
+                      })
+                    ]
+                  })
+                ]
+              }]
+            });
+            const blob = await docx.Packer.toBlob(doc);
+            createDownload(blob, `${baseName}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+            return;
+          }
+
           if (targetFormat === 'pdf') {
             const reader = new FileReader();
             reader.onload = async function(e) {
