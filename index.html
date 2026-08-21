@@ -8,6 +8,9 @@
   <!-- Mammoth extraction engine for DOCX -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   
+  <!-- html2pdf engine for Direct PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
   <!-- Media Processing Engine (FFmpeg.wasm) -->
   <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
@@ -253,45 +256,28 @@
               htmlContent = `<pre style="white-space: pre-wrap; font-family: inherit;">${text}</pre>`;
             }
 
-            // إجبار اتجاه النص والمحاذاة من اليمين إلى اليسار (RTL)
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-              <!DOCTYPE html>
-              <html lang="ar" dir="rtl">
-              <head>
-                <meta charset="UTF-8">
-                <title>${baseName}</title>
-                <style>
-                  body {
-                    font-family: system-ui, -apple-system, sans-serif;
-                    padding: 40px;
-                    line-height: 1.8;
-                    color: #000;
-                    direction: rtl;
-                    text-align: right;
-                  }
-                  ol, ul {
-                    padding-right: 20px;
-                    padding-left: 0;
-                  }
-                  @media print {
-                    body { padding: 0; }
-                  }
-                </style>
-              </head>
-              <body>
-                ${htmlContent}
-                <script>
-                  window.onload = function() {
-                    window.print();
-                    window.close();
-                  };
-                <\/script>
-              </body>
-              </html>
-            `);
-            printWindow.document.close();
-            statusArea.innerHTML = '<span class="status-success">✓ Print window opened! Select "Save as PDF".</span>';
+            // إنشاء عنصر افتراضي مؤقت للرسم وبث المخرجات مباشرة
+            const container = document.createElement('div');
+            container.style.padding = '20px';
+            container.style.color = '#000';
+            container.style.backgroundColor = '#fff';
+            container.style.direction = 'rtl';
+            container.style.textAlign = 'right';
+            container.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+            container.style.lineHeight = '1.8';
+            container.innerHTML = htmlContent;
+
+            const opt = {
+              margin:       10,
+              filename:     `${baseName}.pdf`,
+              image:        { type: 'jpeg', quality: 0.98 },
+              html2canvas:  { scale: 2, useCORS: true },
+              jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // التنزيل المباشر للملف دون فتح نافذة طباعة
+            await html2pdf().set(opt).from(container).save();
+            statusArea.innerHTML = `<div class="status-success">✓ File downloaded successfully as <b>${baseName}.pdf</b>!</div>`;
             return;
           }
 
