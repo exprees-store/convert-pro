@@ -176,7 +176,6 @@
     let selectedFile = null;
     let ffmpegEngine = null;
 
-    // استعادة جميع صيغ التحويل الكاملة
     const formatOptions = {
       docs: [
         { label: 'PDF Document (.pdf)', value: 'pdf' },
@@ -246,7 +245,6 @@
       statusArea.innerHTML = '⏳ Processing... Please wait';
 
       try {
-        // 1. تحويل المستندات النصية
         if (currentCategory === 'docs') {
           if (targetFormat === 'pdf') {
             let htmlContent = '';
@@ -259,12 +257,13 @@
               htmlContent = `<pre style="white-space: pre-wrap; font-family: inherit;">${text}</pre>`;
             }
 
+            // حاوية المحتوى مع توجيه تلقائي ذكي حسب اللغة
             const container = document.createElement('div');
+            container.setAttribute('dir', 'auto');
             container.style.padding = '20px';
             container.style.color = '#000';
             container.style.backgroundColor = '#fff';
-            container.style.direction = 'rtl';
-            container.style.textAlign = 'right';
+            container.style.textAlign = 'start';
             container.style.fontFamily = 'system-ui, -apple-system, sans-serif';
             container.style.lineHeight = '1.8';
             container.innerHTML = htmlContent;
@@ -296,7 +295,6 @@
           }
         }
 
-        // 2. تحويل الصور (بما فيها تحويل الصور إلى PDF)
         if (currentCategory === 'images' || selectedFile.type.startsWith('image/')) {
           if (targetFormat === 'pdf') {
             const reader = new FileReader();
@@ -341,7 +339,6 @@
           }
         }
 
-        // 3. تحويل الفيديو والصوت
         if (currentCategory === 'videos' || currentCategory === 'audio') {
           statusArea.innerHTML = '⏳ Initializing media engine...';
           
